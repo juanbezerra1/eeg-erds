@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "eeg-erds"
+version = "0.1.0"
+description = "ERD/ERS, ERP peaks, SOBI blink removal and epoch rejection for epoched EEG, with a synthetic generator that knows the ground truth."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Juan de Oliveira Bezerra" }]
+keywords = [
+    "eeg", "erd", "ers", "erp", "sobi", "ica", "motor-imagery", "signal-processing",
+    "neuroscience", "biosignals",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Typing :: Typed",
+]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+    "typer>=0.15.4",
+]
+
+[project.optional-dependencies]
+mne = ["mne>=1.4"]
+dev = ["pytest>=7.4", "pytest-cov>=4.1", "ruff>=0.5", "mypy>=1.8", "mne>=1.4"]
+
+[project.scripts]
+eegerds = "eegerds.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/juanbezerra1/eeg-erds"
+Issues = "https://github.com/juanbezerra1/eeg-erds/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eegerds"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "NPY"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+
+[tool.coverage.run]
+omit = ["*/__main__.py"]  # a one-line entry point, run as a subprocess in tests/test_cli.py
