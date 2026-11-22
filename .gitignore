@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# Tooling caches and reports
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Output of `eegerds demo` and local experiments
+eegerds_demo/
+*.sqlite
+*.db
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Real recordings and participant data must never be committed
+data/
+*.edf
+*.bdf
+*.fif
+*.set
+*.vhdr
+*.npz
+!tests/data/*.npz
