@@ -194,9 +194,9 @@ pytest                                   # tests, including the demo and the CLI
 ruff check . && ruff format --check . && mypy src
 ```
 
-CI runs the tests on Python 3.10-3.13, once with the oldest allowed version of every direct
-dependency, lint and types, and installs the built wheel in a clean environment to run
-`eegerds demo --quick`.
+CI runs the tests on Python 3.10-3.13 (Linux) and on Python 3.10 and 3.13 (Windows), once with the oldest
+allowed version of every direct dependency, lint and types, and installs the built wheel in a clean
+environment (Linux and Windows) to run `eegerds demo --quick`.
 
 ## Related
 

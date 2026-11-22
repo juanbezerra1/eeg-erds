@@ -10,12 +10,16 @@ permissions:
 
 jobs:
   test:
-    name: tests (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    name: tests (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13"]
+        include:
+          - { os: windows-latest, python-version: "3.10" }
+          - { os: windows-latest, python-version: "3.13" }
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -81,3 +85,28 @@ jobs:
           /tmp/clean/bin/eegerds simulate /tmp/epochs --subjects 3 --trials 4
           /tmp/clean/bin/eegerds features /tmp/epochs/*.npz --class left --class right --out /tmp/f.csv
           test -s /tmp/demo/report.md
+
+  package-windows:
+    name: build and smoke-test the wheel (Windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Build
+        run: |
+          python -m pip install build
+          python -m build
+      - name: Install the wheel in a clean environment and run the demo
+        run: |
+          python -m venv clean
+          clean/Scripts/python.exe -m pip install dist/*.whl
+          clean/Scripts/eegerds.exe --version
+          clean/Scripts/eegerds.exe demo --out demo --quick
+          clean/Scripts/eegerds.exe simulate epochs --subjects 3 --trials 4
+          clean/Scripts/eegerds.exe features epochs/*.npz --class left --class right --out f.csv
+          test -s demo/report.md
