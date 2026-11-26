@@ -138,6 +138,11 @@ def test_fwer_figure_is_a_single_series_without_a_legend():
     assert_text_never_wears_a_series_colour(fig)
 
 
+def test_fwer_labels_keep_a_half_point_instead_of_rounding_it_away():
+    fig = plot_fwer({"a": 0.065, "b": 0.4, "c": 0.0}, n_reps=200, n_tests=16)
+    assert {"6.5%", "40%", "0%"} <= {t.get_text() for t in fig.axes[0].texts}
+
+
 def test_save_figure_writes_a_png_of_the_requested_size(tmp_path):
     fig = plot_fwer({"a": 0.1, "b": 0.05}, 10, 3)
     path = save_figure(fig, tmp_path / "deep" / "dir" / "fwer.png", dpi=100)

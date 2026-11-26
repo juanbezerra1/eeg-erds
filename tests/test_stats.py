@@ -266,7 +266,7 @@ def test_compare_series_argument_checks(a_shape, b_shape, names, times, message)
 
 def test_unknown_method_is_refused_everywhere():
     a, b = cube()
-    assert set(METHODS) == {"wilcoxon_fdr", "wilcoxon", "signflip_maxt"}
+    assert set(METHODS) == {"wilcoxon_fdr", "wilcoxon", "signflip_maxt", "cluster"}
     with pytest.raises(ValueError, match="method must be one of"):
         ee.compare_series(a, b, ["x", "y"], TIMES, 0.5, method="t-test")  # type: ignore[arg-type]
     amp = pd.DataFrame({"subject": ["S0"], "channel": ["Cz"], "component": ["P300"],

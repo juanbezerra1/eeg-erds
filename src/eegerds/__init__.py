@@ -36,6 +36,7 @@ from .stats import (
     compare_series,
     fdr_bh,
     paired_wilcoxon,
+    signflip_cluster,
     signflip_maxt,
 )
 from .synth import SimConfig, expected_erds, simulate_group, simulate_recording
@@ -90,6 +91,7 @@ __all__ = [
     "remove_eog_components",
     "sample_power",
     "save_epochs",
+    "signflip_cluster",
     "signflip_maxt",
     "simulate_group",
     "simulate_recording",

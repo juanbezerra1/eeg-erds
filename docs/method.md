@@ -153,9 +153,44 @@ conditions (or channels), for every window or component.
   and reports `(1 + count) / (1 + n_perm)`. Zero spread is decided relative to the size of the
   data, so identical differences give `t = +-inf` and `p = 2 / 2**n`, never 0.
 
+* **Cluster-based permutation** (`cluster`, Maris & Oostenveld, 2007; `compare_conditions` and
+  `compare_channels` only, because it needs neighbouring windows: `compare_amplitudes` refuses
+  it). Within one series, neighbouring windows whose paired `|t|` is beyond the two-sided
+  `cluster_p` threshold of the t distribution (default 0.05, `n - 1` degrees of freedom) and have
+  the same sign form a cluster; its *mass* is the sum of `|t|` over its windows. A positive run
+  next to a negative one is two clusters. The null distribution is built as for max-T (flip whole
+  subjects, all series and windows together), but what is recorded for each relabelling is the
+  largest cluster mass over all series, and the adjusted p of a cluster is the share of
+  relabellings whose largest cluster reaches its mass. Every window of a cluster gets that p,
+  windows outside any cluster get 1, and `significant` marks the windows of the clusters below
+  `alpha`. The table gets two columns, `cluster` (1, 2, ... in series and time order; 0 outside)
+  and `cluster_mass`; `p_raw` is NaN, because a window alone has no p, and `effect` is still the
+  rank-biserial correlation of the window. The enumeration, the `2 / 2**n` floor and the
+  random-pattern fallback are those of max-T. A window whose differences are all identical has
+  `t = +-inf`; it is capped at 1e9 so that sums stay finite, and it dominates its cluster.
+  Data with NaN are refused, as for max-T.
+
+  What it says, with the family-wise error controlled over every series and window of the call:
+  the conditions differ *somewhere*, and the cluster is where the evidence was. What it does not
+  say: that each window of the cluster differs, or that the effect starts at its first window and
+  ends at its last (Sassenhagen & Draschkow, 2019, Psychophysiology 56, e13335). `cluster_p` decides what may form
+  a cluster, not what is significant; choose it before looking. With 8 subjects the exact test
+  has 256 patterns, so the smallest p is 0.0078.
+
+  The trade-off, measured (8 subjects, 16 windows, noise correlated between neighbouring windows
+  with `r = 0.7`; the settings and seeds of `tests/test_cluster.py`): with no effect, at least one
+  significant window in 4.5% of 400 experiments for the cluster test, 6.5% for max-T, 40% without
+  correction and 0.25% for BH. With a weak effect spread over six windows (peak 1.2 standard
+  deviations; 150 experiments), 69% for the cluster test, 45% for max-T, 17% for BH. With a
+  2-standard-deviation effect in one window, 28% for the cluster test, 85% for max-T, 1% for BH.
+  A sum of `|t|` over a run rewards width and a sharp single peak adds up to little, while the
+  null distribution of the largest cluster mass holds the wider clusters that noise makes.
+
 In a null experiment (8 subjects, 16 windows at C3, left and right trials identical; see
 `examples/false_positive_windows.py`) the share of experiments with at least one significant
-window is shown in the README figure.
+window (for the cluster test, at least one significant cluster) is shown in the README figure and
+saved per experiment in `fwer_runs.csv`: 80 of 200 without correction, 0 for BH, 14 for max-T and
+13 for the cluster test.
 
 ## 7. Synthetic generator
 

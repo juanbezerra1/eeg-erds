@@ -60,6 +60,19 @@ def test_readme_cli_commands_exist(path):
         assert CliRunner().invoke(app, [command, "--help"]).exit_code == 0
 
 
+def test_the_false_positive_counts_in_the_readmes_are_those_of_the_saved_runs():
+    import pandas as pd
+
+    runs = pd.read_csv(ROOT / "docs" / "fwer_runs.csv")
+    n = len(runs)
+    rules = ("no correction", "FDR (Benjamini-Hochberg)", "sign-flip max-T", "cluster permutation")
+    for path in READMES:
+        text = path.read_text(encoding="utf-8")
+        for rule in rules:
+            hits = int((runs[rule] > 0).sum())
+            assert re.search(rf"\b{hits}\s+(of|de)\s+{n}\b", text), (path.name, rule, hits)
+
+
 def test_quickstart_runs_and_prints_the_tour(capsys):
     _load_example("quickstart").main()
     out = capsys.readouterr().out
@@ -88,5 +101,10 @@ def test_false_positive_study_runs_on_a_tiny_design(tmp_path, capsys):
     table = study.main(["--reps", "2", "--subjects", "4", "--trials", "3", "--jobs", "1",
                         "--out", str(out)])  # fmt: skip
     assert out.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
-    assert list(table["rule"]) == ["no correction", "FDR (Benjamini-Hochberg)", "sign-flip max-T"]
+    assert list(table["rule"]) == [
+        "no correction",
+        "FDR (Benjamini-Hochberg)",
+        "sign-flip max-T",
+        "cluster permutation",
+    ]
     assert "4 subjects, 16 windows per experiment" in capsys.readouterr().out
