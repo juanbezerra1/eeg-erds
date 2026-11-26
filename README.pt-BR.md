@@ -201,9 +201,9 @@ pytest                                   # testes, incluindo o demo e a linha de
 ruff check . && ruff format --check . && mypy src
 ```
 
-O CI roda os testes em Python 3.10-3.13, uma vez com a versão mais antiga permitida de cada
-dependência direta, o lint e os tipos, e instala o wheel construído num ambiente limpo para rodar
-`eegerds demo --quick`.
+O CI roda os testes em Python 3.10-3.13 (Linux) e em Python 3.10 e 3.13 (Windows), uma vez com a versão mais
+antiga permitida de cada dependência direta, o lint e os tipos, e instala o wheel construído num ambiente limpo
+(Linux e Windows) para rodar `eegerds demo --quick`.
 
 ## Relacionados
 
