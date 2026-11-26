@@ -22,7 +22,7 @@ contaminated trials are known, so each claim below is a number you can reproduce
 | `sobi`, `remove_eog_components` | SOBI blind source separation and blink-component removal by correlation with an EOG trace; a recording without blinks is left untouched |
 | `reject_epochs` | three explicit rules (sustained deflection, share of samples out, absolute amplitude) plus an optional window-variance rule; the report lists the rules that flagged each epoch and how many epochs each channel broke |
 | `find_peaks_ordered`, `group_erp`, `measure_amplitudes` | N200/P300/N400 searched in order, latency from the pooled group average, amplitude measured at that latency |
-| `compare_conditions`, `compare_channels`, `compare_amplitudes` | paired tests across subjects with the smallest attainable p-value (`p_floor`) in every row; Wilcoxon + FDR, or an exact sign-flip max-T that controls the family-wise error |
+| `compare_conditions`, `compare_channels`, `compare_amplitudes` | paired tests across subjects with the smallest attainable p-value (`p_floor`) in every row; Wilcoxon + FDR, an exact sign-flip max-T that controls the family-wise error, or (for windows) a cluster-based permutation test |
 | `trial_features` | one row per epoch of log power ratios, in the CSV layout read by [`subjectwise`](https://github.com/juanbezerra1/subjectwise-ml) |
 | `simulate_group`, `expected_erds` | synthetic 12-channel recordings with blinks, mains noise and artefacts, and the exact expected ERD/ERS curve |
 | `process_recording` | notch, band-pass, blink removal, epoching, baseline and rejection in one call, with every intermediate result returned |
@@ -71,10 +71,22 @@ and tests 16 half-second windows with 8 subjects:
 
 Uncorrected Wilcoxon tests call something significant in 40% of the experiments (80 of 200; 95%
 interval 33-47%). The sign-flip max-T test, which is exact for up to 12 subjects, gives 7% (14 of
-200; 4-11%), compatible with the nominal 5%. Benjamini-Hochberg gave none (0 of 200), which sounds
+200; 4-11%), and the cluster-based permutation test (`method="cluster"`) 6.5% (13 of 200; 4-11%):
+both compatible with the nominal 5%. Benjamini-Hochberg gave none (0 of 200), which sounds
 good until you see why: with 8 subjects the smallest exact Wilcoxon p-value is 2/2^8 = 0.0078, so
 FDR over 16 windows can only reject if several windows sit at that floor together. Every table
 carries a `p_floor` column so you can see when a correction has no room to work.
+
+**Max-T or cluster?** Both control the same error, but they spend their power differently. In the
+simulations of `tests/test_cluster.py` (8 subjects, 16 windows, noise correlated between
+neighbouring windows, 150 experiments each), a weak effect spread over six windows (peak: 1.2
+standard deviations) was found by the cluster test in 69% of the experiments and by max-T in 45%
+(FDR: 17%); an effect of 2 standard deviations in a single window was found by the cluster test in
+28% and by max-T in 85% (FDR: 1%). So use the cluster test for a slow, broad ERD, and max-T for one
+sharp window. What the cluster test establishes is that the conditions differ *somewhere* in the
+data tested: the cluster is the evidence, not a measured boundary, so it does not say that every
+window of it differs, or where the effect starts and stops ([`docs/method.md`](docs/method.md),
+section 6).
 
 ## Use it on your own data
 
@@ -101,6 +113,10 @@ left = ee.erds_group([e.select("left") for e in epochs], cfg)
 right = ee.erds_group([e.select("right") for e in epochs], cfg)
 table = ee.compare_conditions(left, right, ["C3", "C4"], method="signflip_maxt")
 print(table[["series", "t_start", "t_stop", "mean_a", "mean_b", "p_adj", "p_floor"]])
+
+# for a broad effect: clusters of neighbouring windows (adds `cluster` and `cluster_mass`);
+# the command line takes it as `--method cluster`
+clusters = ee.compare_conditions(left, right, ["C3", "C4"], method="cluster")
 ```
 
 From a continuous recording, one call does the cleaning (the events are `(sample, code)` rows and

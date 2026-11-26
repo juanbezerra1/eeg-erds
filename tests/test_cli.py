@@ -95,6 +95,32 @@ def test_erds_options_reach_the_analysis(files, tmp_path):
     assert "signflip_maxt" in result.output and "alpha=0.1" in result.output
 
 
+def test_erds_cluster_method_counts_clusters_and_writes_their_columns(files, tmp_path):
+    out = tmp_path / "cluster.csv"
+    result = run("erds", *files, "--tag-a", "left", "--tag-b", "right", "--channel", "C3",
+                 "--channel", "C4", "--method", "cluster", "--cluster-p", 0.1,
+                 "--out", out)  # fmt: skip
+    assert result.exit_code == 0, result.output
+    assert "clusters significant (cluster_p=0.1)" in result.output
+    table = pd.read_csv(out)
+    assert {"cluster", "cluster_mass"} <= set(table.columns) and table["p_raw"].isna().all()
+    found = table[table["cluster"] > 0]
+    assert len(found) > 0, "the simulated lateralised ERD should form a cluster"
+    kept = int(found.loc[found["significant"], "cluster"].nunique())
+    assert f"{kept} of {found['cluster'].nunique()} clusters significant" in result.output
+    # the other methods print no cluster line and write no cluster columns
+    plain = run("erds", *files, "--tag-a", "left", "--tag-b", "right", "--out", tmp_path / "p.csv")
+    assert "clusters significant" not in plain.output
+    assert "cluster" not in pd.read_csv(tmp_path / "p.csv").columns
+
+
+def test_erds_refuses_a_cluster_threshold_outside_zero_one(files, tmp_path):
+    result = run("erds", *files, "--tag-a", "left", "--tag-b", "right", "--method", "cluster",
+                 "--cluster-p", 0, "--out", tmp_path / "x.csv")  # fmt: skip
+    assert result.exit_code != 0 and "cluster_p must be between 0 and 1" in result.output
+    assert "Traceback" not in result.output
+
+
 @pytest.mark.parametrize(
     "extra, message",
     [
