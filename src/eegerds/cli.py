@@ -133,6 +133,9 @@ def erds(
     window: Annotated[float, typer.Option(help="Window length, s.")] = 0.5,
     method: Annotated[str, typer.Option(help=f"One of {', '.join(METHODS)}.")] = "wilcoxon_fdr",
     alpha: Annotated[float, typer.Option(help="Significance level.")] = 0.05,
+    cluster_p: Annotated[
+        float, typer.Option(help="With --method cluster: p of the t threshold that forms clusters.")
+    ] = 0.05,
     out: Annotated[Path, typer.Option(help="CSV with one row per channel and window.")] = Path(
         "erds_windows.csv"
     ),
@@ -143,12 +146,23 @@ def erds(
         cfg = ErdsConfig(band=band, window=window, overlap=0.0, reference=reference)
         a = erds_group(_select(eps, tag_a), cfg)
         b = erds_group(_select(eps, tag_b), cfg)
-        table = compare_conditions(a, b, channels, method=method, alpha=alpha)  # type: ignore[arg-type]
+        table = compare_conditions(
+            a,
+            b,
+            channels,
+            method=method,  # type: ignore[arg-type]
+            alpha=alpha,
+            cluster_p=cluster_p,
+        )
     except (ValueError, KeyError, FileNotFoundError, ImportError) as exc:
         raise _fail(exc) from exc
     table.to_csv(out, index=False)
     hits = table[table["significant"]]
     typer.echo(f"{len(hits)} of {len(table)} windows significant ({method}, alpha={alpha}).")
+    if method == "cluster":
+        found = table[table["cluster"] > 0]["cluster"].nunique()
+        kept = hits["cluster"].nunique()
+        typer.echo(f"{kept} of {found} clusters significant (cluster_p={cluster_p}).")
     typer.echo(f"Smallest attainable p with {len(eps)} subjects: {table['p_floor'].iloc[0]:.4f}")
     typer.echo(f"Wrote {out}")
 

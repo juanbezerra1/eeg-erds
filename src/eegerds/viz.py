@@ -314,7 +314,7 @@ def plot_fwer(
         ax.text(
             i,
             max(v, top) + 0.8,
-            f"{v:.0f}%",
+            f"{v:.1f}".removesuffix(".0") + "%",  # 6.5% stays 6.5%, 40.0% reads 40%
             ha="center",
             va="bottom",
             fontsize=8.5,

@@ -3,7 +3,8 @@
 Simulated experiments in which left and right trials are *identical* at C3 (``ipsi_ratio=1``: both
 hemispheres desynchronise equally, so there is nothing to find). Each experiment is run through the
 whole pipeline and tested in 16 half-second windows. The share of experiments with at least one
-"significant" window should be 5%; it is much larger without a correction.
+"significant" window (for the cluster test: at least one significant cluster) should be 5%; it
+is much larger without a correction.
 
     python examples/false_positive_windows.py                 # 200 experiments, a few minutes
     python examples/false_positive_windows.py --reps 20       # quick look (+/- 8 points of noise)
@@ -29,6 +30,7 @@ METHODS = {
     "no correction": "wilcoxon",
     "FDR (Benjamini-Hochberg)": "wilcoxon_fdr",
     "sign-flip max-T": "signflip_maxt",
+    "cluster permutation": "cluster",
 }
 
 
@@ -89,7 +91,7 @@ def main(argv: list[str] | None = None) -> pd.DataFrame:
             {
                 "rule": label,
                 "experiments with a false positive": f"{hits}/{args.reps}",
-                "rate": f"{100 * hits / args.reps:.0f}%",
+                "rate": f"{100 * hits / args.reps:.1f}%",
                 "95% interval": f"{100 * lo:.0f}-{100 * hi:.0f}%",
             }
         )

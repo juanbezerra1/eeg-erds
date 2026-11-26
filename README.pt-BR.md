@@ -23,7 +23,7 @@ conhecidos. Por isso cada afirmação abaixo é um número que você pode reprod
 | `sobi`, `remove_eog_components` | separação cega de fontes por SOBI e remoção do componente de piscada pela correlação com o EOG; uma gravação sem piscadas fica intacta |
 | `reject_epochs` | três regras explícitas (deflexão sustentada, fração de amostras fora do limite, amplitude absoluta) mais uma regra opcional de variância por janela; o relatório lista as regras que sinalizaram cada época e em quantas épocas cada canal quebrou regras |
 | `find_peaks_ordered`, `group_erp`, `measure_amplitudes` | N200/P300/N400 buscados em ordem, latência tirada da média do grupo, amplitude medida nessa latência |
-| `compare_conditions`, `compare_channels`, `compare_amplitudes` | testes pareados entre sujeitos, com o menor p-valor possível (`p_floor`) em cada linha; Wilcoxon + FDR, ou sign-flip max-T exato, que controla o erro por família |
+| `compare_conditions`, `compare_channels`, `compare_amplitudes` | testes pareados entre sujeitos, com o menor p-valor possível (`p_floor`) em cada linha; Wilcoxon + FDR, sign-flip max-T exato, que controla o erro por família, ou (para janelas) teste de permutação por clusters |
 | `trial_features` | uma linha por época, com razões logarítmicas de potência, no formato de CSV lido pelo [`subjectwise`](https://github.com/juanbezerra1/subjectwise-ml) |
 | `simulate_group`, `expected_erds` | gravações sintéticas de 12 canais com piscadas, ruído de rede e artefatos, e a curva exata de ERD/ERS esperada |
 | `process_recording` | notch, passa-banda, remoção de piscadas, épocas, linha de base e rejeição numa chamada só, devolvendo todos os resultados intermediários |
@@ -73,10 +73,22 @@ pipeline completo e testa 16 janelas de meio segundo com 8 sujeitos:
 
 Testes de Wilcoxon sem correção acham algo significativo em 40% dos experimentos (80 de 200;
 intervalo de 95%: 33-47%). O teste sign-flip max-T, exato para até 12 sujeitos, dá 7% (14 de 200;
-4-11%), compatível com os 5% nominais. O Benjamini-Hochberg não deu nenhum (0 de 200), o que parece
+4-11%), e o teste de permutação por clusters (`method="cluster"`) dá 6,5% (13 de 200; 4-11%): os
+dois compatíveis com os 5% nominais. O Benjamini-Hochberg não deu nenhum (0 de 200), o que parece
 ótimo até você ver o porquê: com 8 sujeitos o menor p-valor exato do Wilcoxon é 2/2^8 = 0,0078, então
 o FDR sobre 16 janelas só consegue rejeitar quando várias janelas estão nesse piso ao mesmo tempo.
 Toda tabela traz uma coluna `p_floor` para você ver quando uma correção não tem espaço para agir.
+
+**Max-T ou clusters?** Os dois controlam o mesmo erro, mas gastam o poder de modo diferente. Nas
+simulações de `tests/test_cluster.py` (8 sujeitos, 16 janelas, ruído correlacionado entre janelas
+vizinhas, 150 experimentos cada), um efeito fraco espalhado por seis janelas (pico: 1,2 desvio
+padrão) foi achado pelo teste de clusters em 69% dos experimentos e pelo max-T em 45% (FDR: 17%);
+um efeito de 2 desvios padrão numa única janela foi achado pelo teste de clusters em 28% e pelo
+max-T em 85% (FDR: 1%). Então use clusters para uma ERD lenta e larga, e max-T para uma janela
+pontual. O que o teste de clusters estabelece é que as condições diferem *em algum ponto* dos
+dados testados: o cluster é a evidência, não uma fronteira medida, então ele não diz que cada
+janela dele difere, nem onde o efeito começa e termina ([`docs/method.md`](docs/method.md),
+seção 6, em inglês).
 
 ## Use nos seus dados
 
@@ -103,6 +115,10 @@ left = ee.erds_group([e.select("left") for e in epochs], cfg)
 right = ee.erds_group([e.select("right") for e in epochs], cfg)
 table = ee.compare_conditions(left, right, ["C3", "C4"], method="signflip_maxt")
 print(table[["series", "t_start", "t_stop", "mean_a", "mean_b", "p_adj", "p_floor"]])
+
+# para um efeito largo: clusters de janelas vizinhas (acrescenta `cluster` e `cluster_mass`);
+# na linha de comando é `--method cluster`
+clusters = ee.compare_conditions(left, right, ["C3", "C4"], method="cluster")
 ```
 
 A partir de uma gravação contínua, uma chamada faz a limpeza (os eventos são linhas
